@@ -1,65 +1,633 @@
+"use client";
+
+import { useState } from "react";
+import { Search, MapPin, Building2, ArrowRight, Coffee } from "lucide-react";
+import { motion } from "framer-motion";
+import clsx from "clsx";
 import Image from "next/image";
+import jobsData from "@/data/jobs.json";
+
+// Mock Data Type Definition
+type Job = {
+  title: string;
+  company: string;
+  location: string;
+  salary: string | null;
+  summary: string | null;
+  link: string | null;
+  prefecture?: string;
+  source?: string;
+};
 
 export default function Home() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("すべて");
+
+  // スコアリングによる高精度なカテゴリ判定ロジック
+  const getCategory = (title: string) => {
+    const t = title.toLowerCase();
+
+    // カテゴリ定義（優先度の高い順に記述）
+    const definitions = [
+      {
+        name: "エンジニア",
+        keywords: ["エンジニア", "engineer", "python", "java", "ruby", "php", "go", "react", "next", "vue", "aws", "開発", "技術", "プログラマ", "技術", "テック", "tech", "ai", "機械学習"]
+      },
+      {
+        name: "デザイナー",
+        keywords: ["デザイン", "デザイナー", "design", "ui", "ux", "figma", "adobe", "photoshop", "illustrator", "クリエイティブ", "アート", "制作"]
+      },
+      {
+        name: "マーケティング",
+        keywords: ["マーケ", "広報", "sns", "seo", "ads", "広告", "リサーチ", "分析", "ブランディング", "pr", "marketing"]
+      },
+      {
+        name: "編集/ライター",
+        keywords: ["編集", "ライター", "writer", "editor", "記事", "執筆", "メディア", "コンテンツ", "書籍"]
+      },
+      {
+        name: "企画",
+        keywords: ["企画", "プランナー", "ディレクター", "pm", "プロダクトマネージャー", "planning", "direction", "ディレクション", "事業開発", "プロデュース"]
+      },
+      {
+        name: "営業",
+        keywords: ["営業", "セールス", "sales", "business", "ビジネス", "商談", "アポ", "インサイドセールス", "コンサルティング", "提案"]
+      },
+    ];
+
+    let bestCategory = "その他";
+    let maxScore = 0;
+
+    for (const def of definitions) {
+      let score = 0;
+      for (const k of def.keywords) {
+        if (t.includes(k)) {
+          score++;
+          // 特例：マーケティングカテゴリの重要キーワードは加点（+2）
+          if (def.name === "マーケティング" && (k === "マーケ" || k === "マーケティング")) {
+            score += 2;
+          }
+        }
+      }
+
+      // より高いスコアが出たら更新（同点の場合は優先順位の高い＝配列の上の方を維持したいので更新しない）
+      if (score > maxScore) {
+        maxScore = score;
+        bestCategory = def.name;
+      }
+    }
+
+    // どのキーワードにも引っかからない場合は「その他」
+    return maxScore > 0 ? bestCategory : "その他";
+  };
+
+  const categories = ["すべて", "エンジニア", "デザイナー", "営業", "企画", "マーケティング", "編集/ライター", "その他"];
+
+  // Area definitions
+  const areas = [
+    { name: "すべて", id: "all" },
+    {
+      name: "東京都", id: "tokyo", children: [
+        { name: "渋谷", id: "shibuya" },
+        { name: "新宿", id: "shinjuku" },
+        { name: "六本木・港区", id: "roppongi_minato" },
+        { name: "東京・丸の内", id: "tokyo_marunouchi" },
+        { name: "品川", id: "shinagawa" },
+      ]
+    },
+    { name: "神奈川県", id: "kanagawa" },
+    {
+      name: "関西", id: "kansai", children: [
+        { name: "大阪府", id: "osaka" },
+        { name: "京都府", id: "kyoto" },
+      ]
+    },
+    { name: "その他（国内）", id: "other_jp" },
+  ];
+
+  // Extended keywords for robust area detection
+  const TOKYO_KEYWORDS = [
+    "東京都", "東京", "千代田区", "中央区", "港区", "新宿", "文京区", "台東区", "墨田区", "江東区", "品川", "目黒", "大田区", "世田谷", "渋谷", "中野", "杉並区", "豊島区", "北区", "荒川区", "板橋区", "練馬区", "足立区", "葛飾区", "江戸川区",
+    "八王子", "立川", "武蔵野", "三鷹", "青梅", "府中", "昭島", "調布", "町田", "小金井", "小平", "日野", "東村山", "国分寺", "国立", "福生", "狛江", "東大和", "清瀬", "東久留米", "武蔵村山", "多摩", "稲城", "羽村", "あきる野", "西東京",
+    "銀座", "六本木", "赤坂", "青山", "原宿", "表参道", "代官山", "恵比寿", "五反田", "大崎", "上野", "秋葉原", "神田", "御茶ノ水", "水道橋", "飯田橋", "神楽坂", "高田馬場", "池袋", "新橋", "浜松町", "田町", "有楽町", "日比谷", "日本橋", "大手町", "丸の内"
+  ];
+  const KANAGAWA_KEYWORDS = ["神奈川", "横浜", "川崎", "相模原", "横須賀", "平塚", "鎌倉", "藤沢", "小田原", "茅ヶ崎", "逗子", "三浦", "秦野", "厚木", "大和", "伊勢原", "海老名", "座間", "南足柄", "綾瀬", "みなとみらい", "桜木町", "関内"];
+  const OSAKA_KEYWORDS = ["大阪", "梅田", "難波", "心斎橋", "天王寺", "京橋", "淀屋橋", "本町", "新大阪", "北新地", "堺", "豊中", "池田", "吹田", "高槻", "守口", "枚方", "茨木", "八尾", "寝屋川", "大東", "箕面", "門真", "摂津", "高石", "藤井寺", "東大阪", "泉南", "四條畷", "交野"];
+  const KYOTO_KEYWORDS = ["京都", "四条", "烏丸", "河原町", "祇園", "嵐山", "伏見", "宇治", "亀岡", "舞鶴", "宮津", "城陽", "向日", "長岡京", "八幡", "京田辺", "木津川"];
+
+  const checkArea = (job: Job, areaId: string): boolean => {
+    if (areaId === "all") return true;
+
+    // Use precise prefecture data if available
+    if (areaId === "tokyo" && job.prefecture === "東京都") return true;
+    if (areaId === "kanagawa" && job.prefecture === "神奈川県") return true;
+    if (areaId === "osaka" && job.prefecture === "大阪府") return true;
+    if (areaId === "kyoto" && job.prefecture === "京都府") return true;
+    if (areaId === "kansai" && ["大阪府", "京都府", "兵庫県", "奈良県", "滋賀県", "和歌山県"].includes(job.prefecture || "")) return true;
+
+    // Fallback to text matching logic
+    const loc = job.location || "";
+    if (!loc) return false;
+
+    // Helper check
+    const matches = (keywords: string[]) => keywords.some(k => loc.includes(k));
+
+    if (areaId === "tokyo") return matches(TOKYO_KEYWORDS);
+    if (areaId === "shibuya") return loc.includes("渋谷");
+    if (areaId === "shinjuku") return loc.includes("新宿");
+    if (areaId === "roppongi_minato") return loc.includes("港区") || loc.includes("六本木");
+    if (areaId === "tokyo_marunouchi") return loc.includes("千代田区") || loc.includes("丸の内") || loc.includes("東京") || loc.includes("大手町") || loc.includes("日比谷");
+    if (areaId === "shinagawa") return loc.includes("品川") || loc.includes("五反田") || loc.includes("大崎");
+
+    if (areaId === "kanagawa") return matches(KANAGAWA_KEYWORDS);
+
+    // Capitalizing checking for 'Kyoto' to avoid matching 'Tokyo' (東京都)
+    const isKyoto = !loc.includes("東京都") && matches(KYOTO_KEYWORDS);
+    const isKansai = matches(OSAKA_KEYWORDS) || isKyoto || loc.includes("兵庫") || loc.includes("神戸") || loc.includes("滋賀") || loc.includes("奈良") || loc.includes("和歌山");
+
+    if (areaId === "kansai") return isKansai;
+    if (areaId === "osaka") return matches(OSAKA_KEYWORDS);
+    if (areaId === "kyoto") return isKyoto;
+
+    // For 'other', exclude all major areas
+    if (areaId === "other_jp") {
+      // If prefecture is known and not one of the major ones
+      if (job.prefecture && !["東京都", "神奈川県", "大阪府", "京都府", "兵庫県"].includes(job.prefecture)) return true;
+
+      // Fallback
+      return !matches(TOKYO_KEYWORDS) && !matches(KANAGAWA_KEYWORDS) &&
+        !matches(OSAKA_KEYWORDS) && !matches(KYOTO_KEYWORDS) &&
+        !loc.includes("兵庫") && !loc.includes("神戸");
+    }
+
+    return false;
+  };
+
+  const features = [
+    "週3日以下でもOK",
+    "週4日以上歓迎",
+    "1ヶ月からOK",
+    "フルリモート可",
+    "一部リモート可",
+    "1・2年生歓迎",
+    "3年生歓迎",
+    "4年生歓迎",
+  ];
+
+  const checkFeature = (job: Job, features: string[]) => {
+    if (features.length === 0) return true;
+
+    // AND Check: Job must match ALL selected features
+    return features.every(feature => {
+      const text = (job.title + (job.summary || "")).toLowerCase();
+
+      if (feature === "週3日以下でもOK") return text.includes("週1") || text.includes("週2") || text.includes("週3");
+      if (feature === "週4日以上歓迎") return text.includes("週4") || text.includes("週5") || text.includes("フルタイム");
+      if (feature === "1ヶ月からOK") return text.includes("短期") || text.includes("1ヶ月") || text.includes("単発");
+      if (feature === "フルリモート可") return text.includes("フルリモート") || text.includes("完全在宅");
+      if (feature === "一部リモート可") return (text.includes("リモート") || text.includes("在宅")) && !text.includes("完全在宅") && !text.includes("フルリモート");
+      if (feature === "1・2年生歓迎") return text.includes("1年") || text.includes("2年") || text.includes("低学年");
+      if (feature === "3年生歓迎") return text.includes("3年");
+      if (feature === "4年生歓迎") return text.includes("4年");
+      return false;
+    });
+  }
+
+  const industries = [
+    "すべて",
+    "IT",
+    "VC/起業支援",
+    "ゲーム",
+    "コンサルティング",
+    "スポーツ",
+    "ファッション/アパレル",
+    "ブライダル",
+    "メーカー",
+    "メディア",
+    "教育",
+    "金融",
+    "広告",
+    "商社",
+    "人材",
+    "医療",
+    "農業",
+    "不動産",
+    "士業",
+    "旅行/レジャー/エンタメ",
+    "食",
+    "官公庁",
+    "その他"
+  ];
+
+  const checkIndustry = (job: Job, industry: string) => {
+    if (industry === "すべて") return true;
+    const text = (job.title + (job.summary || "") + job.company).toLowerCase();
+
+    if (industry === "IT") return text.includes("it") || text.includes("web") || text.includes("アプリ") || text.includes("システム") || text.includes("テック") || text.includes("テクノロジー");
+    if (industry === "VC/起業支援") return text.includes("vc") || text.includes("ベンチャーキャピタル") || text.includes("起業") || text.includes("インキュベーション") || text.includes("ファンド");
+    if (industry === "ゲーム") return text.includes("ゲーム") || text.includes("game");
+    if (industry === "コンサルティング") return text.includes("コンサル");
+    if (industry === "スポーツ") return text.includes("スポーツ") || text.includes("sports");
+    if (industry === "ファッション/アパレル") return text.includes("ファッション") || text.includes("アパレル") || text.includes("服") || text.includes("fashion");
+    if (industry === "ブライダル") return text.includes("ブライダル") || text.includes("ウエディング") || text.includes("結婚");
+    if (industry === "メーカー") return text.includes("メーカー") || text.includes("製造");
+    if (industry === "メディア") return text.includes("メディア") || text.includes("出版") || text.includes("放送") || text.includes("新聞") || text.includes("テレビ");
+    if (industry === "教育") return text.includes("教育") || text.includes("スクール") || text.includes("塾") || text.includes("学習");
+    if (industry === "金融") return text.includes("金融") || text.includes("銀行") || text.includes("証券") || text.includes("保険") || text.includes("フィンテック");
+    if (industry === "広告") return text.includes("広告") || text.includes("アド") || text.includes("pr") || text.includes("プロモーション");
+    if (industry === "商社") return text.includes("商社");
+    if (industry === "人材") return text.includes("人材") || text.includes("hr") || text.includes("採用") || text.includes("キャリア");
+    if (industry === "医療") return text.includes("医療") || text.includes("メディカル") || text.includes("看護") || text.includes("ヘルスケア");
+    if (industry === "農業") return text.includes("農業") || text.includes("アグリ");
+    if (industry === "不動産") return text.includes("不動産") || text.includes("住宅") || text.includes("建設") || text.includes("建築");
+    if (industry === "士業") return text.includes("税理士") || text.includes("会計士") || text.includes("弁護士") || text.includes("司法書士") || text.includes("労務");
+    if (industry === "旅行/レジャー/エンタメ") return text.includes("旅行") || text.includes("観光") || text.includes("エンタメ") || text.includes("レジャー") || text.includes("イベント");
+    if (industry === "食") return text.includes("食") || text.includes("飲食") || text.includes("フード");
+    if (industry === "官公庁") return text.includes("官公庁") || text.includes("自治体") || text.includes("公務員") || text.includes("市役所");
+
+    // Fallback for "その他" is tricky without comprehensive rules, 
+    // but for now let's just match if it explicitly says something or acts as a catch-all if we were doing strict categorization.
+    // Here we will simplistically match 'その他' or if no other specific industry keywords strongly match (hard to do in simple filter).
+    // So for "その他", let's just match "その他" keyword or generic business terms if needed, 
+    // but simpler to just match the specific word for this mock.
+    if (industry === "その他") return text.includes("その他");
+
+    return false;
+  };
+
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  const [selectedAreaId, setSelectedAreaId] = useState("all");
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedIndustry, setSelectedIndustry] = useState("すべて");
+
+  const toggleFeature = (feat: string) => {
+    setSelectedFeatures(prev => {
+      let newFeatures = prev.includes(feat)
+        ? prev.filter(f => f !== feat)
+        : [...prev, feat];
+
+      return newFeatures;
+    });
+  };
+
+  // Cast jobsData to Job[] since the JSON is now an array
+  const allJobs = (Array.isArray(jobsData) ? jobsData : (jobsData as any).jobs || []) as Job[];
+
+  const filteredJobs = allJobs.filter((job) => {
+    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "すべて" || getCategory(job.title) === selectedCategory;
+    const matchesArea = checkArea(job, selectedAreaId);
+    const matchesFeature = checkFeature(job, selectedFeatures);
+    const matchesIndustry = checkIndustry(job, selectedIndustry);
+    return matchesSearch && matchesCategory && matchesArea && matchesFeature && matchesIndustry;
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen flex flex-col relative overflow-hidden bg-soft-bg selection:bg-primary/30">
+      {/* Decorative Soft Blobs */}
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Header */}
+      <header className="relative z-10 w-full py-6 px-4 md:px-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-white rounded-xl shadow-soft flex items-center justify-center text-primary overflow-hidden">
+            <Image src="/icon.png" alt="RE:BOOT Icon" width={24} height={24} className="w-6 h-6 object-contain" />
+          </div>
+          <span className="font-display font-bold text-xl tracking-wide text-foreground">RE:BOOT</span>
+        </div>
+
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 container mx-auto px-4 pt-16 pb-20 text-center max-w-3xl mb-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          <div className="inline-block px-4 py-2 bg-white rounded-full shadow-soft mb-8">
+            <span className="font-sans text-sm text-accent-foreground font-medium flex items-center gap-2">
+              <Image src="/icon.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" />
+              未経験から始める、最初の一歩。
+            </span>
+          </div>
+
+          <h1 className="font-display text-4xl md:text-6xl leading-tight mb-8 text-foreground font-bold tracking-tight">
+            RE:BOOT
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+          <p className="font-sans text-foreground/60 leading-relaxed text-lg mb-12 max-w-2xl mx-auto">
+            RE:BOOTは、主要な求人サイトから<br />
+            <span className="bg-secondary/20 px-2 py-0.5 rounded-sm font-bold text-foreground/80 box-decoration-clone mx-1">未経験から挑戦できる求人のみをまとめて検索できる</span><span className="whitespace-nowrap">サービスです。</span><br />
+            複数のサイトを行き来する手間を省いて、効率よく。<br />
+            まずはここから、新しいキャリアのきっかけを探してみませんか？
+          </p>
+
+          {/* Search Bar */}
+          <div className="max-w-xl mx-auto relative group">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative bg-white p-2 rounded-full shadow-soft-hover flex items-center transition-all duration-300 ring-1 ring-border/5 focus-within:ring-primary/50">
+              <div className="pl-4 text-muted">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                placeholder="キーワードで探す（例: エンジニア、リモート）"
+                className="w-full h-12 bg-transparent border-none focus:ring-0 text-foreground placeholder:text-muted/70 font-sans"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <button className="h-10 px-6 bg-primary text-white font-bold rounded-full hover:bg-primary/90 hover:scale-105 transition-all shadow-sm whitespace-nowrap flex-shrink-0">
+                検索
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Filters Section */}
+      <section className="relative z-10 container mx-auto px-4 mb-12 space-y-6">
+
+        {/* 1. Area Tabs (Blue) */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">エリア</h3>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {/* Level 1 Areas */}
+            <button
+              onClick={() => setSelectedAreaId("all")}
+              className={clsx(
+                "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
+                selectedAreaId === "all"
+                  ? "bg-blue-100 text-foreground shadow-sm"
+                  : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
+              )}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              全国
+            </button>
+            {areas.filter(a => a.id !== "all").map((area) => {
+              // Check if this area or one of its children is selected
+              const isSelected = selectedAreaId === area.id || area.children?.some(c => c.id === selectedAreaId);
+              return (
+                <button
+                  key={area.id}
+                  onClick={() => setSelectedAreaId(area.id)}
+                  className={clsx(
+                    "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
+                    isSelected
+                      ? "bg-blue-100 text-foreground shadow-sm"
+                      : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
+                  )}
+                >
+                  {area.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Level 2 Areas (Sub-areas) */}
+          {(() => {
+            const parentArea = areas.find(a =>
+              a.id !== "all" && (a.id === selectedAreaId || a.children?.some(c => c.id === selectedAreaId))
+            );
+
+            if (parentArea && parentArea.children) {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="flex flex-wrap gap-2 pl-4 border-l-2 border-blue-100"
+                >
+                  <button
+                    onClick={() => setSelectedAreaId(parentArea.id)}
+                    className={clsx(
+                      "px-3 py-1.5 rounded-full text-xs font-bold font-sans transition-all duration-200",
+                      selectedAreaId === parentArea.id
+                        ? "bg-blue-50 text-foreground"
+                        : "bg-white/50 text-foreground/60 hover:bg-white hover:text-foreground"
+                    )}
+                  >
+                    {parentArea.name}全域
+                  </button>
+                  {parentArea.children.map((child) => (
+                    <button
+                      key={child.id}
+                      onClick={() => setSelectedAreaId(child.id)}
+                      className={clsx(
+                        "px-3 py-1.5 rounded-full text-xs font-bold font-sans transition-all duration-200",
+                        selectedAreaId === child.id
+                          ? "bg-blue-50 text-foreground"
+                          : "bg-white/50 text-foreground/60 hover:bg-white hover:text-foreground"
+                      )}
+                    >
+                      {child.name}
+                    </button>
+                  ))}
+                </motion.div>
+              );
+            }
+            return null;
+          })()}
+        </div>
+
+        {/* 2. Industry Tabs (Green) */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">業界</h3>
+          <div className="flex flex-wrap gap-2">
+            {industries.map((ind) => (
+              <button
+                key={ind}
+                onClick={() => setSelectedIndustry(ind)}
+                className={clsx(
+                  "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
+                  selectedIndustry === ind
+                    ? "bg-emerald-100 text-foreground shadow-sm"
+                    : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
+                )}
+              >
+                {ind}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Category Tabs (Orange) */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">カテゴリ</h3>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={clsx(
+                  "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
+                  selectedCategory === cat
+                    ? "bg-orange-100 text-foreground shadow-sm"
+                    : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 4. Feature Tabs (Purple) */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">特徴</h3>
+          <div className="flex flex-wrap gap-2">
+            {features.map((feat) => (
+              <button
+                key={feat}
+                onClick={() => toggleFeature(feat)}
+                className={clsx(
+                  "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
+                  selectedFeatures.includes(feat)
+                    ? "bg-purple-100 text-foreground shadow-sm"
+                    : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
+                )}
+              >
+                {feat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Job List */}
+      <section className="relative z-10 container mx-auto px-4 pb-32">
+        <div className="flex items-center justify-between mb-10 px-2">
+          <h2 className="font-display text-2xl text-foreground font-bold flex items-center gap-3">
+            <span className="w-2 h-8 bg-secondary rounded-full"></span>
+            募集中のアルバイト・インターン
+          </h2>
+          <span className="font-sans text-sm text-muted bg-white px-3 py-1 rounded-full shadow-sm">
+            {filteredJobs.length} 件
+          </span>
+        </div>
+
+        <div className="space-y-16">
+          {categories.filter(cat => cat !== "すべて").map((category) => {
+            // If a specific category is selected, only show that one
+            if (selectedCategory !== "すべて" && selectedCategory !== category) return null;
+
+            const categoryJobs = filteredJobs.filter(job => getCategory(job.title) === category);
+            if (categoryJobs.length === 0) return null;
+
+            const currentCount = visibleCounts[category] || 6;
+            const shownJobs = categoryJobs.slice(0, currentCount);
+            const hasMore = categoryJobs.length > currentCount;
+
+            return (
+              <div key={category}>
+                <h3 className={clsx(
+                  "font-display text-xl font-bold mb-6 text-foreground/80 pl-4 border-l-4 flex items-center gap-2",
+                  category === "エンジニア" ? "border-blue-300" :
+                    category === "デザイナー" ? "border-pink-300" :
+                      category === "マーケティング" ? "border-purple-300" :
+                        category === "営業" ? "border-green-300" :
+                          category === "企画" ? "border-orange-300" :
+                            category === "編集/ライター" ? "border-cyan-300" :
+                              "border-gray-300"
+                )}>
+                  {category}
+                  <span className="text-sm font-normal text-muted bg-soft-bg px-2 py-0.5 rounded-full">
+                    {categoryJobs.length}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {shownJobs.map((job, index) => (
+                    <motion.a
+                      href={job.link || "#"}
+                      target="_blank"
+                      key={`${category}-${index}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                      className="bg-surface rounded-2xl p-6 shadow-soft hover:shadow-soft-hover border border-foreground/10 hover:border-primary transition-all group flex flex-col h-full"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <span className={clsx(
+                          "text-xs px-3 py-1 rounded-full border font-medium",
+                          category === "エンジニア" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                            category === "デザイナー" ? "bg-pink-50 text-pink-600 border-pink-100" :
+                              category === "マーケティング" ? "bg-purple-50 text-purple-600 border-purple-100" :
+                                category === "営業" ? "bg-green-50 text-green-600 border-green-100" :
+                                  category === "企画" ? "bg-orange-50 text-orange-600 border-orange-100" :
+                                    category === "編集/ライター" ? "bg-cyan-50 text-cyan-600 border-cyan-100" :
+                                      "bg-gray-50 text-gray-600 border-gray-100"
+                        )}>
+                          {category}
+                        </span>
+                        {job.salary && (
+                          <span className="text-secondary font-bold text-sm bg-secondary/10 px-3 py-1 rounded-full max-w-[150px] truncate block" title={job.salary}>
+                            {job.salary}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-display text-lg font-bold mb-3 text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {job.title}
+                      </h3>
+
+                      <div className="flex items-center gap-2 text-sm text-foreground/50 mb-6 font-sans">
+                        <Building2 className="w-4 h-4" />
+                        <span className="truncate">{job.company}</span>
+                      </div>
+
+                      {job.summary && (
+                        <p className="text-sm text-foreground/70 line-clamp-3 mb-6 bg-soft-bg p-3 rounded-xl leading-relaxed">
+                          {job.summary}
+                        </p>
+                      )}
+
+                      <div className="mt-auto pt-4 border-t border-dashed border-foreground/10 flex items-center justify-between">
+                        {job.location && (
+                          <div className="flex items-center gap-1.5 text-xs text-foreground/40 font-medium">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{job.location}</span>
+                          </div>
+                        )}
+                        <span className="w-8 h-8 rounded-full bg-soft-bg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </div>
+                    </motion.a>
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setVisibleCounts(prev => ({
+                        ...prev,
+                        [category]: (prev[category] || 6) + 6
+                      }))}
+                      className="px-6 py-3 bg-white border border-foreground/10 text-foreground/70 rounded-full font-bold text-sm shadow-sm hover:bg-soft-bg hover:text-foreground hover:scale-105 transition-all flex items-center gap-2"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-foreground/5 flex items-center justify-center text-lg leading-none">+</span>
+                      もっと見る
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-foreground/5 py-12 mt-auto">
+        <div className="container mx-auto px-4 text-center">
+          <p className="font-display font-bold text-xl text-foreground/20 mb-4">RE:BOOT PROJECT</p>
+          <p className="text-xs text-foreground/40 font-sans">
+            &copy; 2026 RE:BOOT. All rights reserved. <br />
+            Data source: Indeed, Kyujinbox, Infra, ZeroOne
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </footer>
+    </main>
   );
 }
