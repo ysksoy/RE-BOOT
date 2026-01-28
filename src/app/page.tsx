@@ -9,8 +9,11 @@ import jobsData from "@/data/jobs.json";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
+import { getCategory } from "@/lib/jobUtils";
+
 // Mock Data Type Definition
 type Job = {
+  id?: string;
   title: string;
   company: string;
   location: string;
@@ -25,63 +28,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("すべて");
 
-  // スコアリングによる高精度なカテゴリ判定ロジック
-  const getCategory = (title: string) => {
-    const t = title.toLowerCase();
 
-    // カテゴリ定義（優先度の高い順に記述）
-    const definitions = [
-      {
-        name: "エンジニア",
-        keywords: ["エンジニア", "engineer", "python", "java", "ruby", "php", "go", "react", "next", "vue", "aws", "開発", "技術", "プログラマ", "技術", "テック", "tech", "ai", "機械学習"]
-      },
-      {
-        name: "デザイナー",
-        keywords: ["デザイン", "デザイナー", "design", "ui", "ux", "figma", "adobe", "photoshop", "illustrator", "クリエイティブ", "アート", "制作"]
-      },
-      {
-        name: "マーケティング",
-        keywords: ["マーケ", "広報", "sns", "seo", "ads", "広告", "リサーチ", "分析", "ブランディング", "pr", "marketing"]
-      },
-      {
-        name: "編集/ライター",
-        keywords: ["編集", "ライター", "writer", "editor", "記事", "執筆", "メディア", "コンテンツ", "書籍"]
-      },
-      {
-        name: "企画",
-        keywords: ["企画", "プランナー", "ディレクター", "pm", "プロダクトマネージャー", "planning", "direction", "ディレクション", "事業開発", "プロデュース"]
-      },
-      {
-        name: "営業",
-        keywords: ["営業", "セールス", "sales", "business", "ビジネス", "商談", "アポ", "インサイドセールス", "コンサルティング", "提案"]
-      },
-    ];
-
-    let bestCategory = "その他";
-    let maxScore = 0;
-
-    for (const def of definitions) {
-      let score = 0;
-      for (const k of def.keywords) {
-        if (t.includes(k)) {
-          score++;
-          // 特例：マーケティングカテゴリの重要キーワードは加点（+2）
-          if (def.name === "マーケティング" && (k === "マーケ" || k === "マーケティング")) {
-            score += 2;
-          }
-        }
-      }
-
-      // より高いスコアが出たら更新（同点の場合は優先順位の高い＝配列の上の方を維持したいので更新しない）
-      if (score > maxScore) {
-        maxScore = score;
-        bestCategory = def.name;
-      }
-    }
-
-    // どのキーワードにも引っかからない場合は「その他」
-    return maxScore > 0 ? bestCategory : "その他";
-  };
 
   const categories = ["すべて", "エンジニア", "デザイナー", "営業", "企画", "マーケティング", "編集/ライター", "その他"];
 
@@ -530,18 +477,19 @@ export default function Home() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {shownJobs.map((job, index) => (
-                    <motion.a
-                      href={job.link || "#"}
-                      target="_blank"
+                    <motion.div
                       key={`${category}-${index}`}
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.05 }}
                       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                      className="bg-surface rounded-2xl p-6 shadow-soft hover:shadow-soft-hover border border-foreground/10 hover:border-primary transition-all group flex flex-col h-full"
+                      className="bg-surface rounded-2xl p-6 shadow-soft hover:shadow-soft-hover border border-foreground/10 hover:border-primary transition-all group flex flex-col h-full relative"
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      {/* Card Content Wrapper */}
+                      <a href={`/jobs/${job.id}`} className="absolute inset-0 z-0 rounded-2xl" aria-label={job.title}></a>
+
+                      <div className="flex items-start justify-between mb-4 relative z-10 pointer-events-none">
                         <span className={clsx(
                           "text-xs px-3 py-1 rounded-full border font-medium",
                           category === "エンジニア" ? "bg-blue-50 text-blue-600 border-blue-100" :
@@ -561,22 +509,22 @@ export default function Home() {
                         )}
                       </div>
 
-                      <h3 className="font-display text-lg font-bold mb-3 text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      <h3 className="font-display text-lg font-bold mb-3 text-foreground group-hover:text-primary transition-colors line-clamp-2 relative z-10 pointer-events-none">
                         {job.title}
                       </h3>
 
-                      <div className="flex items-center gap-2 text-sm text-foreground/50 mb-6 font-sans">
+                      <div className="flex items-center gap-2 text-sm text-foreground/50 mb-6 font-sans relative z-10 pointer-events-none">
                         <Building2 className="w-4 h-4" />
                         <span className="truncate">{job.company}</span>
                       </div>
 
                       {job.summary && (
-                        <p className="text-sm text-foreground/70 line-clamp-3 mb-6 bg-soft-bg p-3 rounded-xl leading-relaxed">
+                        <p className="text-sm text-foreground/70 line-clamp-3 mb-6 bg-soft-bg p-3 rounded-xl leading-relaxed relative z-10 pointer-events-none">
                           {job.summary}
                         </p>
                       )}
 
-                      <div className="mt-auto pt-4 border-t border-dashed border-foreground/10 flex items-center justify-between">
+                      <div className="mt-auto pt-4 border-t border-dashed border-foreground/10 flex items-center justify-between relative z-10 pointer-events-none">
                         {job.location && (
                           <div className="flex items-center gap-1.5 text-xs text-foreground/40 font-medium">
                             <MapPin className="w-3.5 h-3.5" />
@@ -587,7 +535,7 @@ export default function Home() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                    </motion.a>
+                    </motion.div>
                   ))}
                 </div>
 

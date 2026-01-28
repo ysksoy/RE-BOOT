@@ -1,6 +1,7 @@
 import json
 import glob
 import os
+import hashlib
 from datetime import datetime
 
 # 各プロジェクトの出力ディレクトリパス
@@ -200,6 +201,11 @@ def main():
     # 重複排除（念のためリンクをキーに）
     unique_jobs = {job['link']: job for job in combined_jobs if job.get('link')}
     final_list = list(unique_jobs.values())
+
+    # ID付与 (リンクのハッシュ値)
+    for job in final_list:
+        if 'link' in job:
+            job['id'] = hashlib.md5(job['link'].encode('utf-8')).hexdigest()
     
     # 保存ディレクトリ作成
     os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
