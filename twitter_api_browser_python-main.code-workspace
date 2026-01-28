@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../twitter_api_browser_python-main"
+		},
+		{
+			"path": "../indeed-scraping"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../infra-scraping"
+		},
+		{
+			"path": "../zeroone-scraping"
+		},
+		{
+			"path": "../kyujin-scraping"
+		}
+	],
+	"settings": {}
+}

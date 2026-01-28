@@ -52,5 +52,19 @@ else
     echo "Error: No .venv found for zeroone-scraping" >> "$LOGFILE"
 fi
 
+
+# 5. Sync & Cleanup (Supabase -> JSON)
+echo "--- [5/5] Syncing Jobs from DB ---" >> "$LOGFILE"
+cd /Users/nodayousuke/Engineering/R-website
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+    python sync_jobs.py >> "$LOGFILE" 2>&1
+    deactivate
+else
+    # .venvが無い場合は作成してインストールを試みる、もしくはグローバルで実行
+    # ここでは既存環境があればそれを使う前提
+    python sync_jobs.py >> "$LOGFILE" 2>&1
+fi
+
 echo "All Jobs Finished at $(date)" >> "$LOGFILE"
 echo "==================================================" >> "$LOGFILE"

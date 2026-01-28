@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import clsx from "clsx";
 import Image from "next/image";
 import jobsData from "@/data/jobs.json";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 // Mock Data Type Definition
 type Job = {
@@ -288,16 +290,7 @@ export default function Home() {
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Header */}
-      <header className="relative z-10 w-full py-6 px-4 md:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-white rounded-xl shadow-soft flex items-center justify-center text-primary overflow-hidden">
-            <Image src="/icon.png" alt="RE:BOOT Icon" width={24} height={24} className="w-6 h-6 object-contain" />
-          </div>
-          <span className="font-display font-bold text-xl tracking-wide text-foreground">RE:BOOT</span>
-        </div>
-
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <section className="relative z-10 container mx-auto px-4 pt-16 pb-20 text-center max-w-3xl mb-8">
@@ -618,16 +611,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-foreground/5 py-12 mt-auto">
-        <div className="container mx-auto px-4 text-center">
-          <p className="font-display font-bold text-xl text-foreground/20 mb-4">RE:BOOT PROJECT</p>
-          <p className="text-xs text-foreground/40 font-sans">
-            &copy; 2026 RE:BOOT. All rights reserved. <br />
-            Data source: Indeed, Kyujinbox, Infra, ZeroOne
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

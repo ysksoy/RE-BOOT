@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
 
 class DBClient:
@@ -48,3 +49,28 @@ class DBClient:
             return len(response.data) > 0
         except:
             return False
+
+    def delete_old_jobs(self, days: int = 30):
+        """
+        最終更新から指定日数以上経過した求人を削除する
+        """
+        try:
+            threshold = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+            response = self.supabase.table(self.table_name).delete().lt("updated_at", threshold).execute()
+            return len(response.data) if response.data else 0
+        except Exception as e:
+            print(f"⚠️ DB Delete Error: {e}")
+            return 0
+
+    def fetch_all_jobs(self):
+        """
+        全求人を新着順（created_at降順）で取得する
+        """
+        try:
+            # limitを指定しないとデフォルトで最大1000件などの制限がある場合があるが、
+            # 一旦全件取得を試みる (件数が多い場合はpaginationが必要)
+            response = self.supabase.table(self.table_name).select("*").order("created_at", desc=True).limit(2000).execute()
+            return response.data if response.data else []
+        except Exception as e:
+            print(f"⚠️ DB Fetch Error: {e}")
+            return []
