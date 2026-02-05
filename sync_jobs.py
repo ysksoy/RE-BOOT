@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from db_client_template import DBClient
 
 # Load environment variables (expecting .env in the same dir)
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 OUTPUT_FILE = "src/data/jobs.json"
 STATION_CSV_FILE = "station20251211free.csv"
@@ -151,12 +151,18 @@ def main():
     # 4. Process & Format
     valid_jobs_list = []
     
+    # --- Filtering Logic for Export ---
+    # Only export jobs from these sources to the JSON file
+    EXPORT_SOURCES = ["Infra", "ZeroOne"]
+
     for job in raw_jobs:
-        # Standardize 'source' key (DB uses 'site_name', Frontend expects 'source' or handles both?)
-        # page.tsx defines type Job with optional 'source'.
-        # manual says DB has 'site_name'.
+        # Standardize 'source' key
         job['source'] = job.get('site_name')
         
+        # 1. Source Filtering (Infra & ZeroOne ONLY)
+        if job.get('source') not in EXPORT_SOURCES:
+            continue
+
         # Filter
         if is_valid_job(job):
             # Normalize Location

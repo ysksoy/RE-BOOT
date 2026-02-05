@@ -16,6 +16,7 @@ type Job = {
     summary: string | null;
     link: string | null;
     prefecture?: string;
+    image_url?: string;
     source?: string;
 };
 
@@ -30,6 +31,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
         title: `${job.title} | RE:BOOT`,
         description: `RE:BOOTで「${job.title}」の詳細情報をチェック。未経験から挑戦できる、${job.company}の求人情報です。`,
+        openGraph: {
+            // images: job.image_url ? [job.image_url] : [],
+        }
     };
 }
 
@@ -98,6 +102,9 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                     </div>
                 </div>
 
+
+
+
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -120,19 +127,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                             </div>
                         </section>
 
-                        {/* RE:BOOT Recommendation (Crucial for AdSense) */}
-                        <section className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-8 border border-primary/20 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
 
-                            <h2 className="font-display text-xl font-bold mb-4 flex items-center gap-2 text-primary">
-                                <CheckCircle2 className="w-6 h-6" />
-                                RE:BOOT編集部のおすすめポイント
-                            </h2>
-                            <p className="text-foreground/80 leading-loose">
-                                <b>【未経験から{category}へ挑戦！】</b><br />
-                                {recommendation}
-                            </p>
-                        </section>
 
                         {/* AdSense Placeholder */}
                         <section className="bg-gray-100/50 rounded-xl min-h-[250px] flex items-center justify-center border-2 border-dashed border-gray-200">
@@ -165,6 +160,20 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                                 外部サイト（{job.source}）へ遷移します
                             </div>
                         </div>
+
+                        {/* RE:BOOT Recommendation (Crucial for AdSense) */}
+                        <section className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-6 border border-primary/20 relative overflow-hidden sticky top-[400px]">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                            <h2 className="font-display text-lg font-bold mb-3 flex items-center gap-2 text-primary">
+                                <CheckCircle2 className="w-5 h-5" />
+                                編集部のおすすめ
+                            </h2>
+                            <p className="text-foreground/80 text-sm leading-relaxed">
+                                <b>【未経験から{category}へ挑戦！】</b><br />
+                                {recommendation}
+                            </p>
+                        </section>
                     </div>
 
                 </div>
