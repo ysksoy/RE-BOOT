@@ -1,30 +1,16 @@
-
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import jobsData from "@/data/jobs.json";
+import { fetchJobById } from "@/lib/fetchJobs";
 import { getCategory, getRecommendationMessage } from "@/lib/jobUtils";
 import { notFound } from "next/navigation";
 import { MapPin, Building2, Banknote, Tag, ExternalLink, CheckCircle2 } from "lucide-react";
 
-// 型定義
-type Job = {
-    id?: string;
-    title: string;
-    company: string;
-    location: string;
-    salary: string | null;
-    summary: string | null;
-    link: string | null;
-    prefecture?: string;
-    image_url?: string;
-    source?: string;
-};
+export const revalidate = 3600; // 1時間ごとに再検証（ISR）
 
 // Next.js 15+ compatible metadata generation
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const allJobs = (Array.isArray(jobsData) ? jobsData : (jobsData as any).jobs || []) as Job[];
-    const job = allJobs.find((j) => j.id === id);
+    const job = await fetchJobById(id);
 
     if (!job) return { title: "求人が見つかりません | RE:BOOT" };
 
@@ -41,16 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function JobDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    // データ取得
-    const allJobs = (Array.isArray(jobsData) ? jobsData : (jobsData as any).jobs || []) as Job[];
-    const job = allJobs.find((j) => j.id === id);
+    const job = await fetchJobById(id);
 
     if (!job) {
         notFound();
     }
 
     const category = getCategory(job.title);
-    const recommendation = getRecommendationMessage(category, job.title);
+    const recommendation = job.recommendation || getRecommendationMessage(category, job.title);
 
     return (
         <main className="min-h-screen flex flex-col bg-soft-bg selection:bg-primary/30 font-sans">
@@ -102,9 +86,6 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                     </div>
                 </div>
 
-
-
-
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -127,14 +108,10 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                             </div>
                         </section>
 
-
-
                         {/* AdSense Placeholder */}
                         <section className="bg-gray-100/50 rounded-xl min-h-[250px] flex items-center justify-center border-2 border-dashed border-gray-200">
                             <span className="text-gray-400 font-bold text-sm">広告スペース</span>
                         </section>
-
-
                     </div>
 
                     {/* Right Column: CTA & Info */}
@@ -161,7 +138,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                             </div>
                         </div>
 
-                        {/* RE:BOOT Recommendation (Crucial for AdSense) */}
+                        {/* RE:BOOT Recommendation */}
                         <section className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-6 border border-primary/20 relative overflow-hidden sticky top-[400px]">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
 
