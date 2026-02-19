@@ -2,10 +2,10 @@
 
 @theme {
   --color-background: #fafafa;
-  --color-foreground: #18181b;
+  --color-foreground: #09090b;
   --color-surface: #ffffff;
 
-  --color-primary: #18181b;
+  --color-primary: #09090b;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: #f4f4f5;
@@ -19,22 +19,21 @@
 
   --color-border: #e4e4e7;
 
-  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.03);
-  --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 :root {
   --background: #fafafa;
-  --foreground: #18181b;
+  --foreground: #09090b;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  /* Minimal ambient background */
-  background-image:
-    radial-gradient(circle at top center, #f4f4f5 0%, transparent 60%),
-    linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+  /* よりフラットで清潔感のある背景 */
+  background-image: none;
+  /* ノイズやグラデーションを削除して完全にミニマルに */
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -42,7 +41,7 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -50,15 +49,15 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #e4e4e7;
-  border-radius: 4px;
+  background-color: #d4d4d8;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #d4d4d8;
+  background-color: #a1a1aa;
 }
 
 ::selection {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
+  background: var(--color-foreground);
+  color: var(--color-background);
 }

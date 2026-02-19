@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Search, MapPin, Building2, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import clsx from "clsx";
-import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getCategory } from "@/lib/jobUtils";
@@ -37,7 +36,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         },
         { name: "その他（国内）", id: "other_jp" },
     ];
-
+    // Keywords (unchanged)
     const TOKYO_KEYWORDS = [
         "東京都", "東京", "千代田区", "中央区", "港区", "新宿", "文京区", "台東区", "墨田区", "江東区", "品川", "目黒", "大田区", "世田谷", "渋谷", "中野", "杉並区", "豊島区", "北区", "荒川区", "板橋区", "練馬区", "足立区", "葛飾区", "江戸川区",
         "八王子", "立川", "武蔵野", "三鷹", "青梅", "府中", "昭島", "調布", "町田", "小金井", "小平", "日野", "東村山", "国分寺", "国立", "福生", "狛江", "東大和", "清瀬", "東久留米", "武蔵村山", "多摩", "稲城", "羽村", "あきる野", "西東京",
@@ -55,7 +54,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         "週3日以下でもOK", "週4日以上歓迎", "1ヶ月からOK", "フルリモート可", "一部リモート可", "1・2年生歓迎", "3年生歓迎", "4年生歓迎"
     ];
 
-    // Check Logic (Same as before)
+
     const checkArea = (job: Job, areaId: string): boolean => {
         if (areaId === "all") return true;
         if (areaId === "tokyo" && job.prefecture === "東京都") return true;
@@ -96,6 +95,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         if (features.length === 0) return true;
         return features.every(feature => {
             const text = (job.title + (job.summary || "")).toLowerCase();
+            // Simplified check logic for brevity
             if (feature === "週3日以下でもOK") return text.includes("週1") || text.includes("週2") || text.includes("週3");
             if (feature === "週4日以上歓迎") return text.includes("週4") || text.includes("週5") || text.includes("フルタイム");
             if (feature === "1ヶ月からOK") return text.includes("短期") || text.includes("1ヶ月") || text.includes("単発");
@@ -110,6 +110,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
     const checkIndustry = (job: Job, industry: string) => {
         if (industry === "すべて") return true;
+        // Simplified check logic for brevity
         const text = (job.title + (job.summary || "") + job.company).toLowerCase();
         if (industry === "IT") return text.includes("it") || text.includes("web") || text.includes("アプリ") || text.includes("システム") || text.includes("テック") || text.includes("テクノロジー");
         if (industry === "VC/起業支援") return text.includes("vc") || text.includes("ベンチャーキャピタル") || text.includes("起業") || text.includes("インキュベーション") || text.includes("ファンド");
@@ -157,7 +158,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         return matchesSearch && matchesCategory && matchesArea && matchesFeature && matchesIndustry;
     });
 
-    // UI Helper Component for Filter Chips
+    // Sharp, minimal Filter Chip
     const FilterChip = ({
         label,
         active,
@@ -170,10 +171,10 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         <button
             onClick={onClick}
             className={clsx(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 border", // rounded-mdに縮小、text-xsで引き締め
                 active
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-surface text-muted-foreground border-border hover:border-gray-400 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:border-muted hover:text-foreground"
             )}
         >
             {label}
@@ -181,7 +182,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
     );
 
     return (
-        <div className="min-h-screen flex flex-col bg-background font-sans text-foreground selection:bg-black selection:text-white">
+        <div className="min-h-screen flex flex-col bg-background font-sans text-foreground selection:bg-foreground selection:text-background">
             <Header />
 
             {/* Hero Section */}
@@ -191,33 +192,32 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                 >
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface border border-border rounded-full shadow-sm mb-8">
-                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                        <span className="text-xs font-medium text-foreground tracking-wide">未経験から始める、新しいキャリア</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface border border-border rounded shadow-sm mb-8"> {/* rounded-md to rounded */}
+                        <span className="w-1.5 h-1.5 rounded-full bg-foreground"></span> {/* accent color to foreground (black) for minimal look */}
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Start Your Career</span>
                     </div>
 
-                    <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter mb-8 leading-[1.1]">
-                        RE:BOOT<span className="text-accent text-3xl align-top">.</span>
+                    <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter mb-6 leading-[1.1]">
+                        RE:BOOT<span className="text-muted-foreground text-3xl align-top">.</span>
                     </h1>
 
-                    <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-12 font-light">
-                        主要求人サイトから「未経験歓迎」のインターン・求人を厳選。<br className="hidden md:block" />
-                        効率よく、あなたの可能性を広げる一歩を見つけましょう。
+                    <p className="text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto mb-10 font-normal">
+                        未経験からキャリアを再起動する。<br className="hidden md:block" />
+                        厳選されたインターンシップ・求人情報プラットフォーム。
                     </p>
 
-                    {/* Minimal Search Bar */}
-                    <div className="max-w-xl mx-auto relative group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-100 rounded-full blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
-                        <div className="relative flex items-center bg-surface border border-border rounded-full p-2 shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/5 focus-within:border-primary">
-                            <Search className="w-5 h-5 ml-4 text-muted-foreground shrink-0" />
+                    {/* Minimal Sharp Search Bar */}
+                    <div className="max-w-lg mx-auto relative group">
+                        <div className="relative flex items-center bg-surface border border-border rounded-lg p-1.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-foreground focus-within:border-foreground"> {/* rounded-lg */}
+                            <Search className="w-4 h-4 ml-3 text-muted-foreground shrink-0" />
                             <input
                                 type="text"
-                                placeholder="キーワード（例: エンジニア、週3）"
-                                className="w-full bg-transparent border-none focus:ring-0 px-4 py-2 text-foreground placeholder:text-muted/60 text-base"
+                                placeholder="職種、場所、キーワードで検索"
+                                className="w-full bg-transparent border-none focus:ring-0 px-3 py-2 text-foreground placeholder:text-muted/60 text-sm font-medium"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <button className="bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-medium hover:opacity-90 transition-opacity text-sm shrink-0">
+                            <button className="bg-primary text-primary-foreground px-5 py-2 rounded-md font-bold hover:opacity-90 transition-opacity text-xs tracking-wide shrink-0"> {/* rounded-md */}
                                 検索
                             </button>
                         </div>
@@ -227,10 +227,10 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
             {/* Filters */}
             <section className="container mx-auto px-6 mb-20 max-w-7xl">
-                <div className="space-y-8">
+                <div className="space-y-10 border-t border-border pt-10"> {/* Add top border for separation */}
                     {/* Area */}
                     <div>
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Area / エリア</h3>
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 ml-0.5">Area</h3>
                         <div className="flex flex-wrap gap-2">
                             <FilterChip label="全国" active={selectedAreaId === "all"} onClick={() => setSelectedAreaId("all")} />
                             {areas.filter(a => a.id !== "all").map(area => (
@@ -251,11 +251,11 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                                     <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: "auto" }}
-                                        className="mt-4 flex flex-wrap gap-2 pl-4 border-l-2 border-border"
+                                        className="mt-3 flex flex-wrap gap-2 pl-3 border-l border-border" // Sharp line
                                     >
                                         <button
                                             onClick={() => setSelectedAreaId(parentArea.id)}
-                                            className={clsx("text-sm px-3 py-1 rounded-md transition-colors", selectedAreaId === parentArea.id ? "bg-secondary font-medium" : "text-muted-foreground hover:text-foreground")}
+                                            className={clsx("text-xs px-2 py-1 rounded transition-colors", selectedAreaId === parentArea.id ? "bg-secondary font-bold text-foreground" : "text-muted-foreground hover:text-foreground")}
                                         >
                                             全域
                                         </button>
@@ -263,7 +263,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                                             <button
                                                 key={child.id}
                                                 onClick={() => setSelectedAreaId(child.id)}
-                                                className={clsx("text-sm px-3 py-1 rounded-md transition-colors", selectedAreaId === child.id ? "bg-secondary font-medium" : "text-muted-foreground hover:text-foreground")}
+                                                className={clsx("text-xs px-2 py-1 rounded transition-colors", selectedAreaId === child.id ? "bg-secondary font-bold text-foreground" : "text-muted-foreground hover:text-foreground")}
                                             >
                                                 {child.name}
                                             </button>
@@ -277,7 +277,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
                     {/* Industry */}
                     <div>
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Industry / 業界</h3>
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 ml-0.5">Industry</h3>
                         <div className="flex flex-wrap gap-2">
                             {industries.map(ind => (
                                 <FilterChip key={ind} label={ind} active={selectedIndustry === ind} onClick={() => setSelectedIndustry(ind)} />
@@ -287,7 +287,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
                     {/* Category */}
                     <div>
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Category / 職種</h3>
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 ml-0.5">Category</h3>
                         <div className="flex flex-wrap gap-2">
                             {categories.map(cat => (
                                 <FilterChip key={cat} label={cat} active={selectedCategory === cat} onClick={() => setSelectedCategory(cat)} />
@@ -297,7 +297,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
                     {/* Features */}
                     <div>
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Feature / 特徴</h3>
+                        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 ml-0.5">Feature</h3>
                         <div className="flex flex-wrap gap-2">
                             {features.map(feat => (
                                 <FilterChip key={feat} label={feat} active={selectedFeatures.includes(feat)} onClick={() => toggleFeature(feat)} />
@@ -309,16 +309,16 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
             {/* Results */}
             <section className="container mx-auto px-6 pb-32 max-w-7xl">
-                <div className="flex items-end justify-between mb-12 border-b border-border pb-4">
-                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-                        募集中の求人
+                <div className="flex items-end justify-between mb-8 pb-4 border-b border-border">
+                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-3">
+                        Positions
                     </h2>
-                    <span className="text-sm font-medium text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                    <span className="text-xs font-bold text-foreground bg-secondary px-2 py-0.5 rounded"> {/* rounded-md to rounded */}
                         {filteredJobs.length} results
                     </span>
                 </div>
 
-                <div className="space-y-24">
+                <div className="space-y-20">
                     {categories.filter(cat => cat !== "すべて").map((category) => {
                         if (selectedCategory !== "すべて" && selectedCategory !== category) return null;
 
@@ -331,12 +331,12 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
                         return (
                             <div key={category}>
-                                <div className="flex items-center gap-4 mb-8">
-                                    <h3 className="text-xl font-bold tracking-tight">{category}</h3>
-                                    <div className="h-[1px] flex-1 bg-border"></div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <h3 className="text-lg font-bold tracking-tight">{category}</h3>
+                                    <div className="h-[1px] flex-1 bg-border/60"></div> {/* Thinner line */}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"> {/* Tighten gap */}
                                     {shownJobs.map((job, index) => (
                                         <motion.div
                                             key={`${category}-${index}`}
@@ -344,42 +344,42 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                                             whileInView={{ opacity: 1, y: 0 }}
                                             viewport={{ once: true }}
                                             transition={{ delay: index * 0.05 }}
-                                            whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.1)" }}
-                                            className="group relative bg-surface rounded-2xl p-6 border border-border transition-all duration-300 flex flex-col h-full"
+                                            whileHover={{ y: -2, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }} // Sharper hover
+                                            className="group relative bg-surface rounded-lg p-5 border border-border/80 transition-all duration-200 flex flex-col h-full hover:border-foreground/20" // rounded-lg
                                         >
-                                            <a href={`/jobs/${job.id}`} className="absolute inset-0 z-0 rounded-2xl" aria-label={job.title}></a>
+                                            <a href={`/jobs/${job.id}`} className="absolute inset-0 z-0" aria-label={job.title}></a>
 
                                             {/* Top Metadata */}
-                                            <div className="flex justify-between items-start mb-4 relative z-10 pointer-events-none">
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border px-2 py-1 rounded-md bg-secondary/50">
+                                            <div className="flex justify-between items-start mb-3 relative z-10 pointer-events-none">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border px-1.5 py-0.5 rounded bg-secondary/30"> {/* rounded-md to rounded */}
                                                     {category}
                                                 </span>
                                                 {job.salary && (
-                                                    <span className="text-xs font-semibold text-accent truncate max-w-[120px]">
+                                                    <span className="text-xs font-semibold text-foreground truncate max-w-[120px]"> {/* accent to foreground for cleaner look */}
                                                         {job.salary}
                                                     </span>
                                                 )}
                                             </div>
 
                                             {/* Title */}
-                                            <h3 className="font-bold text-lg leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2 relative z-10 pointer-events-none min-h-[3.5rem]">
+                                            <h3 className="font-bold text-base leading-snug mb-2 group-hover:text-foreground/80 transition-colors line-clamp-2 relative z-10 pointer-events-none min-h-[3rem]">
                                                 {job.title}
                                             </h3>
 
                                             {/* Company */}
-                                            <div className="flex items-center gap-2 text-sm text-foreground/60 mb-6 relative z-10 pointer-events-none">
-                                                <Building2 className="w-4 h-4 text-muted-foreground" />
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6 relative z-10 pointer-events-none">
+                                                <Building2 className="w-3.5 h-3.5" />
                                                 <span className="truncate font-medium">{job.company}</span>
                                             </div>
 
                                             {/* Bottom Metadata */}
-                                            <div className="mt-auto pt-4 border-t border-dashed border-border flex items-center justify-between relative z-10 pointer-events-none">
+                                            <div className="mt-auto pt-3 border-t border-dashed border-border flex items-center justify-between relative z-10 pointer-events-none">
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                                    <MapPin className="w-3.5 h-3.5" />
+                                                    <MapPin className="w-3 h-3" />
                                                     {job.location ? <span>{job.location}</span> : <span>勤務地相談</span>}
                                                 </div>
-                                                <span className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-foreground group-hover:bg-primary group-hover:text-white transition-colors">
-                                                    <ArrowRight className="w-4 h-4" />
+                                                <span className="w-6 h-6 rounded flex items-center justify-center text-foreground group-hover:bg-foreground group-hover:text-background transition-colors"> {/* rounded-full to rounded */}
+                                                    <ArrowRight className="w-3.5 h-3.5" />
                                                 </span>
                                             </div>
                                         </motion.div>
@@ -387,13 +387,13 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                                 </div>
 
                                 {hasMore && (
-                                    <div className="flex justify-center mt-12">
+                                    <div className="flex justify-center mt-10">
                                         <button
                                             onClick={() => setVisibleCounts(prev => ({
                                                 ...prev,
                                                 [category]: (prev[category] || 6) + 6
                                             }))}
-                                            className="px-8 py-3 bg-surface border border-border text-foreground font-medium rounded-full hover:bg-secondary transition-colors text-sm shadow-sm"
+                                            className="px-6 py-2 bg-surface border border-border text-foreground font-medium rounded-md hover:bg-secondary transition-colors text-xs tracking-wide shadow-sm" // rounded-md
                                         >
                                             Show more
                                         </button>
