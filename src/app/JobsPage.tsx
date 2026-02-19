@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Search, MapPin, Building2, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import Image from "next/image";
 import { Header } from "@/components/Header";
@@ -14,9 +14,9 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("すべて");
 
+    // Master Data
     const categories = ["すべて", "エンジニア", "デザイナー", "営業", "企画", "マーケティング", "編集/ライター", "その他"];
 
-    // Area definitions
     const areas = [
         { name: "すべて", id: "all" },
         {
@@ -47,9 +47,17 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
     const OSAKA_KEYWORDS = ["大阪", "梅田", "難波", "心斎橋", "天王寺", "京橋", "淀屋橋", "本町", "新大阪", "北新地", "堺", "豊中", "池田", "吹田", "高槻", "守口", "枚方", "茨木", "八尾", "寝屋川", "大東", "箕面", "門真", "摂津", "高石", "藤井寺", "東大阪", "泉南", "四條畷", "交野"];
     const KYOTO_KEYWORDS = ["京都", "四条", "烏丸", "河原町", "祇園", "嵐山", "伏見", "宇治", "亀岡", "舞鶴", "宮津", "城陽", "向日", "長岡京", "八幡", "京田辺", "木津川"];
 
+    const industries = [
+        "すべて", "IT", "VC/起業支援", "ゲーム", "コンサルティング", "スポーツ", "ファッション/アパレル", "ブライダル", "メーカー", "メディア", "教育", "金融", "広告", "商社", "人材", "医療", "農業", "不動産", "士業", "旅行/レジャー/エンタメ", "食", "官公庁", "その他"
+    ];
+
+    const features = [
+        "週3日以下でもOK", "週4日以上歓迎", "1ヶ月からOK", "フルリモート可", "一部リモート可", "1・2年生歓迎", "3年生歓迎", "4年生歓迎"
+    ];
+
+    // Check Logic (Same as before)
     const checkArea = (job: Job, areaId: string): boolean => {
         if (areaId === "all") return true;
-
         if (areaId === "tokyo" && job.prefecture === "東京都") return true;
         if (areaId === "kanagawa" && job.prefecture === "神奈川県") return true;
         if (areaId === "osaka" && job.prefecture === "大阪府") return true;
@@ -58,7 +66,6 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
         const loc = job.location || "";
         if (!loc) return false;
-
         const matches = (keywords: string[]) => keywords.some(k => loc.includes(k));
 
         if (areaId === "tokyo") return matches(TOKYO_KEYWORDS);
@@ -82,20 +89,8 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                 !matches(OSAKA_KEYWORDS) && !matches(KYOTO_KEYWORDS) &&
                 !loc.includes("兵庫") && !loc.includes("神戸");
         }
-
         return false;
     };
-
-    const features = [
-        "週3日以下でもOK",
-        "週4日以上歓迎",
-        "1ヶ月からOK",
-        "フルリモート可",
-        "一部リモート可",
-        "1・2年生歓迎",
-        "3年生歓迎",
-        "4年生歓迎",
-    ];
 
     const checkFeature = (job: Job, features: string[]) => {
         if (features.length === 0) return true;
@@ -112,32 +107,6 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
             return false;
         });
     };
-
-    const industries = [
-        "すべて",
-        "IT",
-        "VC/起業支援",
-        "ゲーム",
-        "コンサルティング",
-        "スポーツ",
-        "ファッション/アパレル",
-        "ブライダル",
-        "メーカー",
-        "メディア",
-        "教育",
-        "金融",
-        "広告",
-        "商社",
-        "人材",
-        "医療",
-        "農業",
-        "不動産",
-        "士業",
-        "旅行/レジャー/エンタメ",
-        "食",
-        "官公庁",
-        "その他"
-    ];
 
     const checkIndustry = (job: Job, industry: string) => {
         if (industry === "すべて") return true;
@@ -167,6 +136,7 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         return false;
     };
 
+    // State
     const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
     const [selectedAreaId, setSelectedAreaId] = useState("all");
     const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
@@ -187,54 +157,67 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
         return matchesSearch && matchesCategory && matchesArea && matchesFeature && matchesIndustry;
     });
 
-    return (
-        <main className="min-h-screen flex flex-col relative overflow-hidden bg-soft-bg selection:bg-primary/30">
-            {/* Decorative Soft Blobs */}
-            <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[100px] pointer-events-none" />
+    // UI Helper Component for Filter Chips
+    const FilterChip = ({
+        label,
+        active,
+        onClick
+    }: {
+        label: string;
+        active: boolean;
+        onClick: () => void
+    }) => (
+        <button
+            onClick={onClick}
+            className={clsx(
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border",
+                active
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-surface text-muted-foreground border-border hover:border-gray-400 hover:text-foreground"
+            )}
+        >
+            {label}
+        </button>
+    );
 
+    return (
+        <div className="min-h-screen flex flex-col bg-background font-sans text-foreground selection:bg-black selection:text-white">
             <Header />
 
             {/* Hero Section */}
-            <section className="relative z-10 container mx-auto px-4 pt-16 pb-20 text-center max-w-3xl mb-8">
+            <section className="pt-24 pb-16 px-6 max-w-5xl mx-auto text-center">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
                 >
-                    <div className="inline-block px-4 py-2 bg-white rounded-full shadow-soft mb-8">
-                        <span className="font-sans text-sm text-accent-foreground font-medium flex items-center gap-2">
-                            <Image src="/icon.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" />
-                            未経験から始める、最初の一歩。
-                        </span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface border border-border rounded-full shadow-sm mb-8">
+                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                        <span className="text-xs font-medium text-foreground tracking-wide">未経験から始める、新しいキャリア</span>
                     </div>
 
-                    <h1 className="font-display text-4xl md:text-6xl leading-tight mb-8 text-foreground font-bold tracking-tight">
-                        RE:BOOT
+                    <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tighter mb-8 leading-[1.1]">
+                        RE:BOOT<span className="text-accent text-3xl align-top">.</span>
                     </h1>
 
-                    <p className="font-sans text-foreground/60 leading-relaxed text-lg mb-12 max-w-2xl mx-auto">
-                        RE:BOOTは、主要な求人サイトから<br />
-                        <span className="bg-secondary/20 px-2 py-0.5 rounded-sm font-bold text-foreground/80 box-decoration-clone mx-1">未経験から挑戦できる求人のみをまとめて検索できる</span><span className="whitespace-nowrap">サービスです。</span><br />
-                        複数のサイトを行き来する手間を省いて、効率よく。<br />
-                        まずはここから、新しいキャリアのきっかけを探してみませんか？
+                    <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-12 font-light">
+                        主要求人サイトから「未経験歓迎」のインターン・求人を厳選。<br className="hidden md:block" />
+                        効率よく、あなたの可能性を広げる一歩を見つけましょう。
                     </p>
 
-                    {/* Search Bar */}
+                    {/* Minimal Search Bar */}
                     <div className="max-w-xl mx-auto relative group">
-                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <div className="relative bg-white p-2 rounded-full shadow-soft-hover flex items-center transition-all duration-300 ring-1 ring-border/5 focus-within:ring-primary/50">
-                            <div className="pl-4 text-muted">
-                                <Search className="w-5 h-5" />
-                            </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-100 rounded-full blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
+                        <div className="relative flex items-center bg-surface border border-border rounded-full p-2 shadow-soft transition-all focus-within:ring-2 focus-within:ring-primary/5 focus-within:border-primary">
+                            <Search className="w-5 h-5 ml-4 text-muted-foreground shrink-0" />
                             <input
                                 type="text"
-                                placeholder="キーワードで探す（例: エンジニア、リモート）"
-                                className="w-full h-12 bg-transparent border-none focus:ring-0 text-foreground placeholder:text-muted/70 font-sans"
+                                placeholder="キーワード（例: エンジニア、週3）"
+                                className="w-full bg-transparent border-none focus:ring-0 px-4 py-2 text-foreground placeholder:text-muted/60 text-base"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <button className="h-10 px-6 bg-primary text-white font-bold rounded-full hover:bg-primary/90 hover:scale-105 transition-all shadow-sm whitespace-nowrap flex-shrink-0">
+                            <button className="bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-medium hover:opacity-90 transition-opacity text-sm shrink-0">
                                 検索
                             </button>
                         </div>
@@ -242,165 +225,100 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                 </motion.div>
             </section>
 
-            {/* Filters Section */}
-            <section className="relative z-10 container mx-auto px-4 mb-12 space-y-6">
-
-                {/* 1. Area Tabs (Blue) */}
-                <div>
-                    <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">エリア</h3>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        <button
-                            onClick={() => setSelectedAreaId("all")}
-                            className={clsx(
-                                "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
-                                selectedAreaId === "all"
-                                    ? "bg-blue-100 text-foreground shadow-sm"
-                                    : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
-                            )}
-                        >
-                            全国
-                        </button>
-                        {areas.filter(a => a.id !== "all").map((area) => {
-                            const isSelected = selectedAreaId === area.id || area.children?.some(c => c.id === selectedAreaId);
-                            return (
-                                <button
+            {/* Filters */}
+            <section className="container mx-auto px-6 mb-20 max-w-7xl">
+                <div className="space-y-8">
+                    {/* Area */}
+                    <div>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Area / エリア</h3>
+                        <div className="flex flex-wrap gap-2">
+                            <FilterChip label="全国" active={selectedAreaId === "all"} onClick={() => setSelectedAreaId("all")} />
+                            {areas.filter(a => a.id !== "all").map(area => (
+                                <FilterChip
                                     key={area.id}
+                                    label={area.name}
+                                    active={selectedAreaId === area.id || !!area.children?.some(c => c.id === selectedAreaId)}
                                     onClick={() => setSelectedAreaId(area.id)}
-                                    className={clsx(
-                                        "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
-                                        isSelected
-                                            ? "bg-blue-100 text-foreground shadow-sm"
-                                            : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
-                                    )}
-                                >
-                                    {area.name}
-                                </button>
-                            );
-                        })}
-                    </div>
+                                />
+                            ))}
+                        </div>
 
-                    {/* Level 2 Areas (Sub-areas) */}
-                    {(() => {
-                        const parentArea = areas.find(a =>
-                            a.id !== "all" && (a.id === selectedAreaId || a.children?.some(c => c.id === selectedAreaId))
-                        );
-
-                        if (parentArea && parentArea.children) {
-                            return (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    className="flex flex-wrap gap-2 pl-4 border-l-2 border-blue-100"
-                                >
-                                    <button
-                                        onClick={() => setSelectedAreaId(parentArea.id)}
-                                        className={clsx(
-                                            "px-3 py-1.5 rounded-full text-xs font-bold font-sans transition-all duration-200",
-                                            selectedAreaId === parentArea.id
-                                                ? "bg-blue-50 text-foreground"
-                                                : "bg-white/50 text-foreground/60 hover:bg-white hover:text-foreground"
-                                        )}
+                        {/* Sub Areas */}
+                        {(() => {
+                            const parentArea = areas.find(a => a.id !== "all" && (a.id === selectedAreaId || a.children?.some(c => c.id === selectedAreaId)));
+                            if (parentArea && parentArea.children) {
+                                return (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        className="mt-4 flex flex-wrap gap-2 pl-4 border-l-2 border-border"
                                     >
-                                        {parentArea.name}全域
-                                    </button>
-                                    {parentArea.children.map((child) => (
                                         <button
-                                            key={child.id}
-                                            onClick={() => setSelectedAreaId(child.id)}
-                                            className={clsx(
-                                                "px-3 py-1.5 rounded-full text-xs font-bold font-sans transition-all duration-200",
-                                                selectedAreaId === child.id
-                                                    ? "bg-blue-50 text-foreground"
-                                                    : "bg-white/50 text-foreground/60 hover:bg-white hover:text-foreground"
-                                            )}
+                                            onClick={() => setSelectedAreaId(parentArea.id)}
+                                            className={clsx("text-sm px-3 py-1 rounded-md transition-colors", selectedAreaId === parentArea.id ? "bg-secondary font-medium" : "text-muted-foreground hover:text-foreground")}
                                         >
-                                            {child.name}
+                                            全域
                                         </button>
-                                    ))}
-                                </motion.div>
-                            );
-                        }
-                        return null;
-                    })()}
-                </div>
-
-                {/* 2. Industry Tabs (Green) */}
-                <div>
-                    <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">業界</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {industries.map((ind) => (
-                            <button
-                                key={ind}
-                                onClick={() => setSelectedIndustry(ind)}
-                                className={clsx(
-                                    "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
-                                    selectedIndustry === ind
-                                        ? "bg-emerald-100 text-foreground shadow-sm"
-                                        : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
-                                )}
-                            >
-                                {ind}
-                            </button>
-                        ))}
+                                        {parentArea.children.map(child => (
+                                            <button
+                                                key={child.id}
+                                                onClick={() => setSelectedAreaId(child.id)}
+                                                className={clsx("text-sm px-3 py-1 rounded-md transition-colors", selectedAreaId === child.id ? "bg-secondary font-medium" : "text-muted-foreground hover:text-foreground")}
+                                            >
+                                                {child.name}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                );
+                            }
+                            return null;
+                        })()}
                     </div>
-                </div>
 
-                {/* 3. Category Tabs (Orange) */}
-                <div>
-                    <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">カテゴリ</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={clsx(
-                                    "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
-                                    selectedCategory === cat
-                                        ? "bg-orange-100 text-foreground shadow-sm"
-                                        : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
-                                )}
-                            >
-                                {cat}
-                            </button>
-                        ))}
+                    {/* Industry */}
+                    <div>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Industry / 業界</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {industries.map(ind => (
+                                <FilterChip key={ind} label={ind} active={selectedIndustry === ind} onClick={() => setSelectedIndustry(ind)} />
+                            ))}
+                        </div>
                     </div>
-                </div>
 
-                {/* 4. Feature Tabs (Purple) */}
-                <div>
-                    <h3 className="text-sm font-bold text-foreground/50 mb-3 px-1 font-sans">特徴</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {features.map((feat) => (
-                            <button
-                                key={feat}
-                                onClick={() => toggleFeature(feat)}
-                                className={clsx(
-                                    "px-4 py-2 rounded-full text-sm font-bold font-sans transition-all duration-200",
-                                    selectedFeatures.includes(feat)
-                                        ? "bg-purple-100 text-foreground shadow-sm"
-                                        : "bg-white text-foreground/70 hover:bg-white/80 hover:text-foreground shadow-sm"
-                                )}
-                            >
-                                {feat}
-                            </button>
-                        ))}
+                    {/* Category */}
+                    <div>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Category / 職種</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {categories.map(cat => (
+                                <FilterChip key={cat} label={cat} active={selectedCategory === cat} onClick={() => setSelectedCategory(cat)} />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Features */}
+                    <div>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 ml-1">Feature / 特徴</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {features.map(feat => (
+                                <FilterChip key={feat} label={feat} active={selectedFeatures.includes(feat)} onClick={() => toggleFeature(feat)} />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Job List */}
-            <section className="relative z-10 container mx-auto px-4 pb-32">
-                <div className="flex items-center justify-between mb-10 px-2">
-                    <h2 className="font-display text-2xl text-foreground font-bold flex items-center gap-3">
-                        <span className="w-2 h-8 bg-secondary rounded-full"></span>
-                        募集中のアルバイト・インターン
+            {/* Results */}
+            <section className="container mx-auto px-6 pb-32 max-w-7xl">
+                <div className="flex items-end justify-between mb-12 border-b border-border pb-4">
+                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+                        募集中の求人
                     </h2>
-                    <span className="font-sans text-sm text-muted bg-white px-3 py-1 rounded-full shadow-sm">
-                        {filteredJobs.length} 件
+                    <span className="text-sm font-medium text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                        {filteredJobs.length} results
                     </span>
                 </div>
 
-                <div className="space-y-16">
+                <div className="space-y-24">
                     {categories.filter(cat => cat !== "すべて").map((category) => {
                         if (selectedCategory !== "すべて" && selectedCategory !== category) return null;
 
@@ -413,77 +331,54 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
 
                         return (
                             <div key={category}>
-                                <h3 className={clsx(
-                                    "font-display text-xl font-bold mb-6 text-foreground/80 pl-4 border-l-4 flex items-center gap-2",
-                                    category === "エンジニア" ? "border-blue-300" :
-                                        category === "デザイナー" ? "border-pink-300" :
-                                            category === "マーケティング" ? "border-purple-300" :
-                                                category === "営業" ? "border-green-300" :
-                                                    category === "企画" ? "border-orange-300" :
-                                                        category === "編集/ライター" ? "border-cyan-300" :
-                                                            "border-gray-300"
-                                )}>
-                                    {category}
-                                    <span className="text-sm font-normal text-muted bg-soft-bg px-2 py-0.5 rounded-full">
-                                        {categoryJobs.length}
-                                    </span>
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                                <div className="flex items-center gap-4 mb-8">
+                                    <h3 className="text-xl font-bold tracking-tight">{category}</h3>
+                                    <div className="h-[1px] flex-1 bg-border"></div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {shownJobs.map((job, index) => (
                                         <motion.div
                                             key={`${category}-${index}`}
-                                            initial={{ opacity: 0, y: 20 }}
+                                            initial={{ opacity: 0, y: 10 }}
                                             whileInView={{ opacity: 1, y: 0 }}
                                             viewport={{ once: true }}
                                             transition={{ delay: index * 0.05 }}
-                                            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                                            className="bg-surface rounded-2xl p-6 shadow-soft hover:shadow-soft-hover border border-foreground/10 hover:border-primary transition-all group flex flex-col h-full relative"
+                                            whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.1)" }}
+                                            className="group relative bg-surface rounded-2xl p-6 border border-border transition-all duration-300 flex flex-col h-full"
                                         >
                                             <a href={`/jobs/${job.id}`} className="absolute inset-0 z-0 rounded-2xl" aria-label={job.title}></a>
 
-                                            <div className="flex items-start justify-between mb-4 relative z-10 pointer-events-none">
-                                                <span className={clsx(
-                                                    "text-xs px-3 py-1 rounded-full border font-medium",
-                                                    category === "エンジニア" ? "bg-blue-50 text-blue-600 border-blue-100" :
-                                                        category === "デザイナー" ? "bg-pink-50 text-pink-600 border-pink-100" :
-                                                            category === "マーケティング" ? "bg-purple-50 text-purple-600 border-purple-100" :
-                                                                category === "営業" ? "bg-green-50 text-green-600 border-green-100" :
-                                                                    category === "企画" ? "bg-orange-50 text-orange-600 border-orange-100" :
-                                                                        category === "編集/ライター" ? "bg-cyan-50 text-cyan-600 border-cyan-100" :
-                                                                            "bg-gray-50 text-gray-600 border-gray-100"
-                                                )}>
+                                            {/* Top Metadata */}
+                                            <div className="flex justify-between items-start mb-4 relative z-10 pointer-events-none">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border px-2 py-1 rounded-md bg-secondary/50">
                                                     {category}
                                                 </span>
                                                 {job.salary && (
-                                                    <span className="text-secondary font-bold text-sm bg-secondary/10 px-3 py-1 rounded-full max-w-[150px] truncate block" title={job.salary}>
+                                                    <span className="text-xs font-semibold text-accent truncate max-w-[120px]">
                                                         {job.salary}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <h3 className="font-display text-lg font-bold mb-3 text-foreground group-hover:text-primary transition-colors line-clamp-2 relative z-10 pointer-events-none">
+                                            {/* Title */}
+                                            <h3 className="font-bold text-lg leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2 relative z-10 pointer-events-none min-h-[3.5rem]">
                                                 {job.title}
                                             </h3>
 
-                                            <div className="flex items-center gap-2 text-sm text-foreground/50 mb-6 font-sans relative z-10 pointer-events-none">
-                                                <Building2 className="w-4 h-4" />
-                                                <span className="truncate">{job.company}</span>
+                                            {/* Company */}
+                                            <div className="flex items-center gap-2 text-sm text-foreground/60 mb-6 relative z-10 pointer-events-none">
+                                                <Building2 className="w-4 h-4 text-muted-foreground" />
+                                                <span className="truncate font-medium">{job.company}</span>
                                             </div>
 
-                                            {job.summary && (
-                                                <p className="text-sm text-foreground/70 line-clamp-3 mb-6 bg-soft-bg p-3 rounded-xl leading-relaxed relative z-10 pointer-events-none">
-                                                    {job.summary}
-                                                </p>
-                                            )}
-
-                                            <div className="mt-auto pt-4 border-t border-dashed border-foreground/10 flex items-center justify-between relative z-10 pointer-events-none">
-                                                {job.location && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-foreground/40 font-medium">
-                                                        <MapPin className="w-3.5 h-3.5" />
-                                                        <span>{job.location}</span>
-                                                    </div>
-                                                )}
-                                                <span className="w-8 h-8 rounded-full bg-soft-bg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                            {/* Bottom Metadata */}
+                                            <div className="mt-auto pt-4 border-t border-dashed border-border flex items-center justify-between relative z-10 pointer-events-none">
+                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                                    <MapPin className="w-3.5 h-3.5" />
+                                                    {job.location ? <span>{job.location}</span> : <span>勤務地相談</span>}
+                                                </div>
+                                                <span className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-foreground group-hover:bg-primary group-hover:text-white transition-colors">
                                                     <ArrowRight className="w-4 h-4" />
                                                 </span>
                                             </div>
@@ -492,16 +387,15 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
                                 </div>
 
                                 {hasMore && (
-                                    <div className="flex justify-center">
+                                    <div className="flex justify-center mt-12">
                                         <button
                                             onClick={() => setVisibleCounts(prev => ({
                                                 ...prev,
                                                 [category]: (prev[category] || 6) + 6
                                             }))}
-                                            className="px-6 py-3 bg-white border border-foreground/10 text-foreground/70 rounded-full font-bold text-sm shadow-sm hover:bg-soft-bg hover:text-foreground hover:scale-105 transition-all flex items-center gap-2"
+                                            className="px-8 py-3 bg-surface border border-border text-foreground font-medium rounded-full hover:bg-secondary transition-colors text-sm shadow-sm"
                                         >
-                                            <span className="w-6 h-6 rounded-full bg-foreground/5 flex items-center justify-center text-lg leading-none">+</span>
-                                            もっと見る
+                                            Show more
                                         </button>
                                     </div>
                                 )}
@@ -512,6 +406,6 @@ export default function JobsPage({ jobs }: { jobs: Job[] }) {
             </section>
 
             <Footer />
-        </main>
+        </div>
     );
 }

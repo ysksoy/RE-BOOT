@@ -9,29 +9,39 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
-                background: "var(--background)",
-                foreground: "var(--foreground)",
-                // Soft Minimalist Palette
-                primary: "#8ECAE6", // Soft Sky Blue
-                secondary: "#FFB5A7", // Soft Peach/Coral
-                accent: "#FCD5CE", // Pale Pink
-                muted: "#9CA3AF", // Soft Gray
-                surface: "#FFFFFF", // Pure White Card Background
-                "soft-bg": "#F8F9FA", // Off-white Background
-            },
-            borderRadius: {
-                lg: "1rem",
-                xl: "1.5rem",
-                "2xl": "2rem",
-                "3xl": "3rem",
+                background: "#FAFAFA", // Zinc 50
+                foreground: "#18181B", // Zinc 900
+                surface: "#FFFFFF",
+                primary: {
+                    DEFAULT: "#18181B", // Black for primary actions (Minimalist)
+                    foreground: "#FFFFFF",
+                },
+                secondary: {
+                    DEFAULT: "#F4F4F5", // Zinc 100
+                    foreground: "#18181B",
+                },
+                muted: {
+                    DEFAULT: "#71717A", // Zinc 500
+                    foreground: "#A1A1AA",
+                },
+                accent: {
+                    DEFAULT: "#2563EB", // Blue 600
+                    foreground: "#FFFFFF",
+                },
+                border: "#E4E4E7", // Zinc 200
             },
             fontFamily: {
-                sans: ["var(--font-sans)"],
-                display: ["var(--font-sans)"],
+                sans: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+                display: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
             },
             boxShadow: {
-                soft: "0 4px 20px -2px rgba(0, 0, 0, 0.1)",
-                "soft-hover": "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
+                soft: "0 2px 10px rgba(0, 0, 0, 0.03)",
+                hover: "0 10px 30px rgba(0, 0, 0, 0.06)",
+            },
+            borderRadius: {
+                xl: "0.75rem",
+                "2xl": "1rem",
+                "3xl": "1.5rem",
             },
         },
     },
